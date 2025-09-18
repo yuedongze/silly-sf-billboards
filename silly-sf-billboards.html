@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silly SF Billboards</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tagline {
+            color: rgba(255, 255, 255, 0.9);
+            font-style: italic;
+            margin-top: 0.5rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .billboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .billboard-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .billboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        .billboard-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .billboard-info {
+            padding: 1.5rem;
+        }
+
+        .billboard-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .billboard-location {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .billboard-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"], input[type="file"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover, .file-upload.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .individual-billboard {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .billboard-detail-image {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .share-btn {
+            background: #1da1f2;
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .share-btn.hackernews {
+            background: #ff6600;
+        }
+
+        .share-btn.reddit {
+            background: #ff4500;
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .back-btn {
+            background: #6c757d;
+            margin-bottom: 2rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #666;
+        }
+
+        .empty-state h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-buttons {
+                flex-wrap: wrap;
+            }
+
+            .billboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .share-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div>
+                    <div class="logo">🏢 Silly SF Billboards</div>
+                    <div class="tagline">Capturing the weirdest tech ads in the Bay Area</div>
+                </div>
+                <div class="nav-buttons">
+                    <button onclick="showPage('home')">Home</button>
+                    <button class="submit-btn" onclick="showPage('submit')">Submit Billboard</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <!-- Home Page -->
+            <div id="home" class="page active">
+                <h1>Welcome to Silly SF Billboards!</h1>
+                <p>A collection of the most amusing, bizarre, and memorable tech billboards spotted around San Francisco and the Bay Area. From startup pitch attempts to corporate flex displays, we've got them all!</p>
+                
+                <div id="billboards-grid" class="billboard-grid">
+                    <div class="empty-state">
+                        <h2>No billboards yet!</h2>
+                        <p>Be the first to submit a silly SF billboard photo.</p>
+                        <button class="submit-btn" onclick="showPage('submit')" style="margin-top: 1rem;">Submit First Billboard</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Page -->
+            <div id="submit" class="page">
+                <h1>Submit a Billboard</h1>
+                <p>Found a funny, weird, or memorable tech billboard in SF? Share it with the community!</p>
+                
+                <form id="submit-form">
+                    <div class="form-group">
+                        <label for="title">Billboard Title *</label>
+                        <input type="text" id="title" name="title" required placeholder="e.g., 'We're hiring ninjas and wizards'">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location">Location *</label>
+                        <input type="text" id="location" name="location" required placeholder="e.g., 'SOMA, near 4th & King'">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="company">Company (if known)</label>
+                        <input type="text" id="company" name="company" placeholder="e.g., 'MegaCorp AI'">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" placeholder="What makes this billboard silly or interesting?"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="photo">Photo *</label>
+                        <div class="file-upload" onclick="document.getElementById('photo').click()">
+                            <input type="file" id="photo" name="photo" accept="image/*" required style="display: none;" onchange="handleFileSelect(this)">
+                            <div id="upload-text">📸 Click to upload billboard photo</div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Submit Billboard</button>
+                </form>
+            </div>
+
+            <!-- Individual Billboard Page -->
+            <div id="billboard-detail" class="page">
+                <div class="individual-billboard">
+                    <button class="back-btn" onclick="showPage('home')">← Back to Gallery</button>
+                    <div id="billboard-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let billboards = [];
+        let currentBillboard = null;
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                const uploadText = document.getElementById('upload-text');
+                uploadText.textContent = `📸 ${file.name} selected`;
+                uploadText.style.color = '#667eea';
+            }
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function formatDate(timestamp) {
+            return new Date(timestamp).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function createBillboardCard(billboard) {
+            return `
+                <div class="billboard-card" onclick="showBillboard('${billboard.id}')">
+                    <img src="${billboard.imageUrl}" alt="${billboard.title}" class="billboard-image">
+                    <div class="billboard-info">
+                        <div class="billboard-title">${billboard.title}</div>
+                        <div class="billboard-location">📍 ${billboard.location}</div>
+                        <div class="billboard-stats">
+                            <span>📅 ${formatDate(billboard.timestamp)}</span>
+                            <span>👁️ ${billboard.views} views</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBillboards() {
+            const grid = document.getElementById('billboards-grid');
+            
+            if (billboards.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No billboards yet!</h2>
+                        <p>Be the first to submit a silly SF billboard photo.</p>
+                        <button class="submit-btn" onclick="showPage('submit')" style="margin-top: 1rem;">Submit First Billboard</button>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = billboards.map(createBillboardCard).join('');
+            }
+        }
+
+        function showBillboard(id) {
+            const billboard = billboards.find(b => b.id === id);
+            if (!billboard) return;
+
+            // Increment view count
+            billboard.views++;
+            
+            currentBillboard = billboard;
+            
+            const shareUrl = `${window.location.origin}${window.location.pathname}#billboard-${id}`;
+            
+            document.getElementById('billboard-content').innerHTML = `
+                <h1>${billboard.title}</h1>
+                ${billboard.company ? `<p><strong>Company:</strong> ${billboard.company}</p>` : ''}
+                <p><strong>Location:</strong> 📍 ${billboard.location}</p>
+                <p><strong>Submitted:</strong> ${formatDate(billboard.timestamp)}</p>
+                <p><strong>Views:</strong> ${billboard.views}</p>
+                
+                <img src="${billboard.imageUrl}" alt="${billboard.title}" class="billboard-detail-image">
+                
+                ${billboard.description ? `
+                    <div style="margin: 2rem 0;">
+                        <h3>Description</h3>
+                        <p>${billboard.description}</p>
+                    </div>
+                ` : ''}
+                
+                <div class="share-buttons">
+                    <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20silly%20SF%20billboard%3A%20${encodeURIComponent(billboard.title)}&url=${encodeURIComponent(shareUrl)}" target="_blank" class="share-btn">
+                        🐦 Share on Twitter
+                    </a>
+                    <a href="https://news.ycombinator.com/submitlink?u=${encodeURIComponent(shareUrl)}&t=${encodeURIComponent('Silly SF Billboard: ' + billboard.title)}" target="_blank" class="share-btn hackernews">
+                        🧡 Share on HN
+                    </a>
+                    <a href="https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('Silly SF Billboard: ' + billboard.title)}" target="_blank" class="share-btn reddit">
+                        🤖 Share on Reddit
+                    </a>
+                    <button class="share-btn" onclick="copyLink('${shareUrl}')" style="background: #28a745; border: none;">
+                        🔗 Copy Link
+                    </button>
+                </div>
+            `;
+            
+            showPage('billboard-detail');
+            renderBillboards(); // Update view count in grid
+        }
+
+        function copyLink(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link copied to clipboard!');
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('submit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const file = formData.get('photo');
+            
+            if (!file) {
+                alert('Please select a photo');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const billboard = {
+                    id: generateId(),
+                    title: formData.get('title'),
+                    location: formData.get('location'),
+                    company: formData.get('company') || null,
+                    description: formData.get('description') || null,
+                    imageUrl: e.target.result,
+                    timestamp: Date.now(),
+                    views: 0
+                };
+                
+                billboards.unshift(billboard);
+                renderBillboards();
+                
+                // Reset form
+                document.getElementById('submit-form').reset();
+                document.getElementById('upload-text').textContent = '📸 Click to upload billboard photo';
+                document.getElementById('upload-text').style.color = '';
+                
+                showPage('home');
+                alert('Billboard submitted successfully!');
+            };
+            
+            reader.readAsDataURL(file);
+        });
+
+        // Handle deep linking
+        function handleHash() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#billboard-')) {
+                const id = hash.substring(11);
+                showBillboard(id);
+            }
+        }
+
+        window.addEventListener('hashchange', handleHash);
+        window.addEventListener('load', handleHash);
+
+        // Add some sample data for demo purposes
+        function addSampleBillboards() {
+            const samples = [
+                {
+                    id: 'sample1',
+                    title: 'We only hire 10x developers who code in their sleep',
+                    location: 'SOMA, near Caltrain Station',
+                    company: 'HyperScale AI',
+                    description: 'Spotted this gem right next to the Caltrain station. Because apparently normal developers just won\'t cut it anymore.',
+                    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMwMDczZTYiLz4KPHRleHQgeD0iMjAwIiB5PSI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhZUEVSU0NBTEUgQUk8L3RleHQ+Cjx0ZXh0IHg9IjIwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XZSBvbmx5IGhpcmUgMTB4IGRldmVsb3BlcnM8L3RleHQ+Cjx0ZXh0IHg9IjIwMCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj53aG8gY29kZSBpbiB0aGVpciBzbGVlcDwvdGV4dD4KPHRleHQgeD0iMjAwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXBwbHkgbm93IGF0IGh5cGVyc2NhbGUuYWk8L3RleHQ+Cjwvc3ZnPgo=',
+                    timestamp: Date.now() - 86400000,
+                    views: 42
+                }
+            ];
+            
+            billboards.push(...samples);
+            renderBillboards();
+        }
+
+        // Initialize with sample data
+        addSampleBillboards();
+    </script>
+</body>
+</html>
