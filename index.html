@@ -279,6 +279,12 @@
                 justify-content: center;
             }
         }
+
+        /* Loading spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -379,8 +385,55 @@
             const file = input.files[0];
             if (file) {
                 const uploadText = document.getElementById('upload-text');
-                uploadText.textContent = `📸 ${file.name} selected`;
+                uploadText.innerHTML = `📸 ${file.name} selected<br><small>Processing image...</small>`;
                 uploadText.style.color = '#667eea';
+                
+                // Validate image in real-time
+                validateImage(file);
+            }
+        }
+
+        async function validateImage(file) {
+            try {
+                const base64Image = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+
+                const response = await fetch(`${API_BASE_URL}/image/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_data: base64Image })
+                });
+
+                const data = await response.json();
+                const uploadText = document.getElementById('upload-text');
+
+                if (data.valid) {
+                    const info = data.processing_info;
+                    uploadText.innerHTML = `
+                        📸 ${file.name}<br>
+                        <small style="color: #28a745;">
+                            ✓ Optimized: ${info.original_size_kb}KB → ${info.final_size_kb}KB 
+                            (${info.compression_ratio}x smaller)<br>
+                            📐 Dimensions: ${info.dimensions[0]}×${info.dimensions[1]}px
+                        </small>
+                    `;
+                } else {
+                    uploadText.innerHTML = `
+                        📸 ${file.name}<br>
+                        <small style="color: #dc3545;">❌ ${data.error}</small>
+                    `;
+                    // Clear the file input
+                    document.getElementById('photo').value = '';
+                }
+            } catch (error) {
+                console.error('Error validating image:', error);
+                const uploadText = document.getElementById('upload-text');
+                uploadText.innerHTML = `📸 ${file.name}<br><small style="color: #ffc107;">⚠️ Could not validate image</small>`;
             }
         }
 
@@ -513,7 +566,7 @@
             // Show loading state
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Uploading...';
+            submitBtn.innerHTML = 'Processing image... <div style="display: inline-block; width: 12px; height: 12px; border: 2px solid #ffffff40; border-top: 2px solid #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>';
             submitBtn.disabled = true;
             
             try {
@@ -531,6 +584,8 @@
                     description: formData.get('description') || null,
                     image_data: base64Image
                 };
+                
+                submitBtn.innerHTML = 'Uploading... <div style="display: inline-block; width: 12px; height: 12px; border: 2px solid #ffffff40; border-top: 2px solid #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>';
                 
                 const response = await fetch(`${API_BASE_URL}/billboards`, {
                     method: 'POST',
@@ -551,7 +606,14 @@
                     // Reload billboards and show home page
                     await loadBillboards();
                     showPage('home');
-                    alert('Billboard submitted successfully!');
+                    
+                    // Show success message with processing info
+                    if (data.image_processing) {
+                        const proc = data.image_processing;
+                        alert(`Billboard submitted successfully!\n\nImage optimized: ${proc.original_size_kb}KB → ${proc.final_size_kb}KB\nCompression: ${proc.compression_ratio}x smaller\nDimensions: ${proc.dimensions[0]}×${proc.dimensions[1]}px`);
+                    } else {
+                        alert('Billboard submitted successfully!');
+                    }
                 } else {
                     alert('Error submitting billboard: ' + data.error);
                 }
