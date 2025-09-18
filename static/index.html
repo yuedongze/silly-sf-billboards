@@ -390,7 +390,11 @@
         // API configuration - change this to your Flask backend URL
         const API_BASE_URL = '';
 
-        function showPage(pageId, updateUrl = true) {
+        async function showPage(pageId, updateUrl = true) {
+            if (pageId == 'home') {
+                await loadBillboards();
+            }
+
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
@@ -666,7 +670,7 @@
         });
 
         // Client-side routing
-        function handleRoute() {
+        async function handleRoute() {
             const path = window.location.pathname;
             
             if (path === '/' || path === '/index.html') {
@@ -715,7 +719,6 @@
 
         // Initialize routing when page loads
         window.addEventListener('load', async () => {
-            await loadBillboards();
             handleRoute();
         });
 
