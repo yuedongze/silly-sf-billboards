@@ -365,6 +365,9 @@
         let billboards = [];
         let currentBillboard = null;
 
+        // API configuration - change this to your Flask backend URL
+        const API_BASE_URL = 'http://localhost:8080';
+
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
@@ -381,12 +384,8 @@
             }
         }
 
-        function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2);
-        }
-
-        function formatDate(timestamp) {
-            return new Date(timestamp).toLocaleDateString('en-US', {
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
@@ -396,17 +395,29 @@
         function createBillboardCard(billboard) {
             return `
                 <div class="billboard-card" onclick="showBillboard('${billboard.id}')">
-                    <img src="${billboard.imageUrl}" alt="${billboard.title}" class="billboard-image">
+                    <img src="${billboard.image_data}" alt="${billboard.title}" class="billboard-image">
                     <div class="billboard-info">
                         <div class="billboard-title">${billboard.title}</div>
                         <div class="billboard-location">📍 ${billboard.location}</div>
                         <div class="billboard-stats">
-                            <span>📅 ${formatDate(billboard.timestamp)}</span>
+                            <span>📅 ${formatDate(billboard.created_at)}</span>
                             <span>👁️ ${billboard.views} views</span>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        async function loadBillboards() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/billboards`);
+                const data = await response.json();
+                billboards = data.billboards || [];
+                renderBillboards();
+            } catch (error) {
+                console.error('Error loading billboards:', error);
+                renderBillboards(); // Show empty state
+            }
         }
 
         function renderBillboards() {
@@ -425,51 +436,60 @@
             }
         }
 
-        function showBillboard(id) {
-            const billboard = billboards.find(b => b.id === id);
-            if (!billboard) return;
-
-            // Increment view count
-            billboard.views++;
-            
-            currentBillboard = billboard;
-            
-            const shareUrl = `${window.location.origin}${window.location.pathname}#billboard-${id}`;
-            
-            document.getElementById('billboard-content').innerHTML = `
-                <h1>${billboard.title}</h1>
-                ${billboard.company ? `<p><strong>Company:</strong> ${billboard.company}</p>` : ''}
-                <p><strong>Location:</strong> 📍 ${billboard.location}</p>
-                <p><strong>Submitted:</strong> ${formatDate(billboard.timestamp)}</p>
-                <p><strong>Views:</strong> ${billboard.views}</p>
+        async function showBillboard(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/billboards/${id}`);
+                const data = await response.json();
                 
-                <img src="${billboard.imageUrl}" alt="${billboard.title}" class="billboard-detail-image">
+                if (!data.billboard) {
+                    alert('Billboard not found');
+                    return;
+                }
                 
-                ${billboard.description ? `
-                    <div style="margin: 2rem 0;">
-                        <h3>Description</h3>
-                        <p>${billboard.description}</p>
+                const billboard = data.billboard;
+                currentBillboard = billboard;
+                
+                const shareUrl = `${window.location.origin}${window.location.pathname}#billboard-${id}`;
+                
+                document.getElementById('billboard-content').innerHTML = `
+                    <h1>${billboard.title}</h1>
+                    ${billboard.company ? `<p><strong>Company:</strong> ${billboard.company}</p>` : ''}
+                    <p><strong>Location:</strong> 📍 ${billboard.location}</p>
+                    <p><strong>Submitted:</strong> ${formatDate(billboard.created_at)}</p>
+                    <p><strong>Views:</strong> ${billboard.views}</p>
+                    
+                    <img src="${billboard.image_data}" alt="${billboard.title}" class="billboard-detail-image">
+                    
+                    ${billboard.description ? `
+                        <div style="margin: 2rem 0;">
+                            <h3>Description</h3>
+                            <p>${billboard.description}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="share-buttons">
+                        <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20silly%20SF%20billboard%3A%20${encodeURIComponent(billboard.title)}&url=${encodeURIComponent(shareUrl)}" target="_blank" class="share-btn">
+                            🐦 Share on Twitter
+                        </a>
+                        <a href="https://news.ycombinator.com/submitlink?u=${encodeURIComponent(shareUrl)}&t=${encodeURIComponent('Silly SF Billboard: ' + billboard.title)}" target="_blank" class="share-btn hackernews">
+                            🧡 Share on HN
+                        </a>
+                        <a href="https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('Silly SF Billboard: ' + billboard.title)}" target="_blank" class="share-btn reddit">
+                            🤖 Share on Reddit
+                        </a>
+                        <button class="share-btn" onclick="copyLink('${shareUrl}')" style="background: #28a745; border: none;">
+                            🔗 Copy Link
+                        </button>
                     </div>
-                ` : ''}
+                `;
                 
-                <div class="share-buttons">
-                    <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20silly%20SF%20billboard%3A%20${encodeURIComponent(billboard.title)}&url=${encodeURIComponent(shareUrl)}" target="_blank" class="share-btn">
-                        🐦 Share on Twitter
-                    </a>
-                    <a href="https://news.ycombinator.com/submitlink?u=${encodeURIComponent(shareUrl)}&t=${encodeURIComponent('Silly SF Billboard: ' + billboard.title)}" target="_blank" class="share-btn hackernews">
-                        🧡 Share on HN
-                    </a>
-                    <a href="https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent('Silly SF Billboard: ' + billboard.title)}" target="_blank" class="share-btn reddit">
-                        🤖 Share on Reddit
-                    </a>
-                    <button class="share-btn" onclick="copyLink('${shareUrl}')" style="background: #28a745; border: none;">
-                        🔗 Copy Link
-                    </button>
-                </div>
-            `;
-            
-            showPage('billboard-detail');
-            renderBillboards(); // Update view count in grid
+                showPage('billboard-detail');
+                await loadBillboards(); // Refresh the grid to show updated view count
+                
+            } catch (error) {
+                console.error('Error loading billboard:', error);
+                alert('Error loading billboard');
+            }
         }
 
         function copyLink(url) {
@@ -479,7 +499,7 @@
         }
 
         // Handle form submission
-        document.getElementById('submit-form').addEventListener('submit', function(e) {
+        document.getElementById('submit-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
@@ -490,67 +510,79 @@
                 return;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const billboard = {
-                    id: generateId(),
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Uploading...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Convert image to base64
+                const base64Image = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+                
+                const billboardData = {
                     title: formData.get('title'),
                     location: formData.get('location'),
                     company: formData.get('company') || null,
                     description: formData.get('description') || null,
-                    imageUrl: e.target.result,
-                    timestamp: Date.now(),
-                    views: 0
+                    image_data: base64Image
                 };
                 
-                billboards.unshift(billboard);
-                renderBillboards();
+                const response = await fetch(`${API_BASE_URL}/billboards`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(billboardData)
+                });
                 
-                // Reset form
-                document.getElementById('submit-form').reset();
-                document.getElementById('upload-text').textContent = '📸 Click to upload billboard photo';
-                document.getElementById('upload-text').style.color = '';
+                const data = await response.json();
                 
-                showPage('home');
-                alert('Billboard submitted successfully!');
-            };
-            
-            reader.readAsDataURL(file);
+                if (response.ok) {
+                    // Reset form
+                    document.getElementById('submit-form').reset();
+                    document.getElementById('upload-text').textContent = '📸 Click to upload billboard photo';
+                    document.getElementById('upload-text').style.color = '';
+                    
+                    // Reload billboards and show home page
+                    await loadBillboards();
+                    showPage('home');
+                    alert('Billboard submitted successfully!');
+                } else {
+                    alert('Error submitting billboard: ' + data.error);
+                }
+                
+            } catch (error) {
+                console.error('Error submitting billboard:', error);
+                alert('Error submitting billboard. Please try again.');
+            } finally {
+                // Reset button
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         });
 
         // Handle deep linking
-        function handleHash() {
+        async function handleHash() {
             const hash = window.location.hash;
             if (hash.startsWith('#billboard-')) {
                 const id = hash.substring(11);
-                showBillboard(id);
+                await showBillboard(id);
             }
         }
 
         window.addEventListener('hashchange', handleHash);
-        window.addEventListener('load', handleHash);
+        window.addEventListener('load', async () => {
+            await loadBillboards();
+            await handleHash();
+        });
 
-        // Add some sample data for demo purposes
-        function addSampleBillboards() {
-            const samples = [
-                {
-                    id: 'sample1',
-                    title: 'We only hire 10x developers who code in their sleep',
-                    location: 'SOMA, near Caltrain Station',
-                    company: 'HyperScale AI',
-                    description: 'Spotted this gem right next to the Caltrain station. Because apparently normal developers just won\'t cut it anymore.',
-                    imageUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMwMDczZTYiLz4KPHRleHQgeD0iMjAwIiB5PSI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhZUEVSU0NBTEUgQUk8L3RleHQ+Cjx0ZXh0IHg9IjIwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XZSBvbmx5IGhpcmUgMTB4IGRldmVsb3BlcnM8L3RleHQ+Cjx0ZXh0IHg9IjIwMCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj53aG8gY29kZSBpbiB0aGVpciBzbGVlcDwvdGV4dD4KPHRleHQgeD0iMjAwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXBwbHkgbm93IGF0IGh5cGVyc2NhbGUuYWk8L3RleHQ+Cjwvc3ZnPgo=',
-                    timestamp: Date.now() - 86400000,
-                    views: 42
-                }
-            ];
-            
-            billboards.push(...samples);
-            renderBillboards();
-        }
-
-        // Initialize with sample data
-        addSampleBillboards();
+        // Initialize by loading billboards from API
+        loadBillboards();
     </script>
 </body>
 </html>
