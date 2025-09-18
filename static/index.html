@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Silly SF Billboards</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://silly-sf-billboards.com/">
+    <meta property="og:title" content="Silly SF Billboards">
+    <meta property="og:description" content="A collection of the most amusing, bizarre, and memorable tech billboards spotted around San Francisco and the Bay Area.">
+    <meta property="og:image" content="https://silly-sf-billboards.com/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://silly-sf-billboards.com/">
+    <meta property="twitter:title" content="Silly SF Billboards">
+    <meta property="twitter:description" content="A collection of the most amusing, bizarre, and memorable tech billboards spotted around San Francisco and the Bay Area.">
+    <meta property="twitter:image" content="https://silly-sf-billboards.com/og-image.jpg">
+
+    <!-- Dynamic meta tags will be updated by JavaScript for individual billboards -->
     <style>
         * {
             margin: 0;
@@ -296,8 +312,8 @@
                     <div class="tagline">Capturing the weirdest tech ads in the Bay Area</div>
                 </div>
                 <div class="nav-buttons">
-                    <button onclick="showPage('home')">Home</button>
-                    <button class="submit-btn" onclick="showPage('submit')">Submit Billboard</button>
+                    <button onclick="navigateHome()">Home</button>
+                    <button class="submit-btn" onclick="navigateSubmit()">Submit Billboard</button>
                 </div>
             </div>
         </div>
@@ -314,7 +330,7 @@
                     <div class="empty-state">
                         <h2>No billboards yet!</h2>
                         <p>Be the first to submit a silly SF billboard photo.</p>
-                        <button class="submit-btn" onclick="showPage('submit')" style="margin-top: 1rem;">Submit First Billboard</button>
+                        <button class="submit-btn" onclick="navigateSubmit()" style="margin-top: 1rem;">Submit First Billboard</button>
                     </div>
                 </div>
             </div>
@@ -360,7 +376,7 @@
             <!-- Individual Billboard Page -->
             <div id="billboard-detail" class="page">
                 <div class="individual-billboard">
-                    <button class="back-btn" onclick="showPage('home')">← Back to Gallery</button>
+                    <button class="back-btn" onclick="navigateBack()">← Back to Gallery</button>
                     <div id="billboard-content"></div>
                 </div>
             </div>
@@ -372,13 +388,27 @@
         let currentBillboard = null;
 
         // API configuration - change this to your Flask backend URL
-        const API_BASE_URL = 'http://localhost:8080';
+        const API_BASE_URL = '';
 
-        function showPage(pageId) {
+        function showPage(pageId, updateUrl = true) {
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
             document.getElementById(pageId).classList.add('active');
+            
+            // Update URL for different pages
+            if (updateUrl) {
+                let newUrl = '/';
+                if (pageId === 'submit') {
+                    newUrl = '/submit';
+                } else if (pageId === 'home') {
+                    newUrl = '/';
+                }
+                
+                if (window.location.pathname !== newUrl) {
+                    window.history.pushState({ page: pageId }, '', newUrl);
+                }
+            }
         }
 
         function handleFileSelect(input) {
@@ -502,7 +532,14 @@
                 const billboard = data.billboard;
                 currentBillboard = billboard;
                 
-                const shareUrl = `${window.location.origin}${window.location.pathname}#billboard-${id}`;
+                // Update meta tags for social sharing
+                updateMetaTags(billboard);
+                
+                // Update URL without triggering page reload
+                const newUrl = `/billboard/${id}`;
+                window.history.pushState({ billboardId: id }, billboard.title, newUrl);
+                
+                const shareUrl = `${window.location.origin}/billboard/${id}`;
                 
                 document.getElementById('billboard-content').innerHTML = `
                     <h1>${billboard.title}</h1>
@@ -536,7 +573,7 @@
                     </div>
                 `;
                 
-                showPage('billboard-detail');
+                showPage('billboard-detail', false);
                 await loadBillboards(); // Refresh the grid to show updated view count
                 
             } catch (error) {
@@ -605,7 +642,7 @@
                     
                     // Reload billboards and show home page
                     await loadBillboards();
-                    showPage('home');
+                    navigateHome();
                     
                     // Show success message with processing info
                     if (data.image_processing) {
@@ -628,23 +665,115 @@
             }
         });
 
-        // Handle deep linking
-        async function handleHash() {
-            const hash = window.location.hash;
-            if (hash.startsWith('#billboard-')) {
-                const id = hash.substring(11);
-                await showBillboard(id);
+        // Client-side routing
+        function handleRoute() {
+            const path = window.location.pathname;
+            
+            if (path === '/' || path === '/index.html') {
+                showPage('home', false);
+            } else if (path === '/submit') {
+                showPage('submit', false);
+            } else if (path.startsWith('/billboard/')) {
+                const billboardId = path.split('/')[2];
+                if (billboardId) {
+                    showBillboard(billboardId);
+                } else {
+                    // Invalid billboard URL, redirect to home
+                    window.history.pushState({}, '', '/');
+                    showPage('home', false);
+                }
+            } else {
+                // Unknown route, redirect to home
+                window.history.pushState({}, '', '/');
+                showPage('home', false);
             }
         }
 
-        window.addEventListener('hashchange', handleHash);
-        window.addEventListener('load', async () => {
-            await loadBillboards();
-            await handleHash();
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function(event) {
+            handleRoute();
         });
 
-        // Initialize by loading billboards from API
-        loadBillboards();
+        // Update navigation buttons to use proper routing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update header navigation
+            const navButtons = document.querySelectorAll('.nav-buttons button');
+            navButtons.forEach(button => {
+                if (button.textContent.trim() === 'Home') {
+                    button.onclick = function() {
+                        window.history.pushState({}, '', '/');
+                        showPage('home', false);
+                    };
+                } else if (button.textContent.trim() === 'Submit Billboard') {
+                    button.onclick = function() {
+                        window.history.pushState({}, '', '/submit');
+                        showPage('submit', false);
+                    };
+                }
+            });
+        });
+
+        // Initialize routing when page loads
+        window.addEventListener('load', async () => {
+            await loadBillboards();
+            handleRoute();
+        });
+
+        // Update meta tags for individual billboard sharing
+        function updateMetaTags(billboard) {
+            // Update page title
+            document.title = `${billboard.title} - Silly SF Billboards`;
+            
+            // Update Open Graph tags
+            updateMetaTag('og:title', `${billboard.title} - Silly SF Billboards`);
+            updateMetaTag('og:description', billboard.description || `Silly billboard spotted in ${billboard.location}`);
+            updateMetaTag('og:url', `${window.location.origin}/billboard/${billboard.id}`);
+            updateMetaTag('og:image', billboard.image_data);
+            
+            // Update Twitter tags
+            updateMetaTag('twitter:title', `${billboard.title} - Silly SF Billboards`);
+            updateMetaTag('twitter:description', billboard.description || `Silly billboard spotted in ${billboard.location}`);
+            updateMetaTag('twitter:url', `${window.location.origin}/billboard/${billboard.id}`);
+            updateMetaTag('twitter:image', billboard.image_data);
+        }
+
+        function updateMetaTag(property, content) {
+            let element = document.querySelector(`meta[property="${property}"]`);
+            if (!element) {
+                element = document.createElement('meta');
+                element.setAttribute('property', property);
+                document.head.appendChild(element);
+            }
+            element.setAttribute('content', content);
+        }
+
+        // Reset meta tags to default
+        function resetMetaTags() {
+            document.title = 'Silly SF Billboards';
+            updateMetaTag('og:title', 'Silly SF Billboards');
+            updateMetaTag('og:description', 'A collection of the most amusing, bizarre, and memorable tech billboards spotted around San Francisco and the Bay Area.');
+            updateMetaTag('og:url', window.location.origin);
+            updateMetaTag('og:image', `${window.location.origin}/og-image.jpg`);
+            
+            updateMetaTag('twitter:title', 'Silly SF Billboards');
+            updateMetaTag('twitter:description', 'A collection of the most amusing, bizarre, and memorable tech billboards spotted around San Francisco and the Bay Area.');
+            updateMetaTag('twitter:url', window.location.origin);
+            updateMetaTag('twitter:image', `${window.location.origin}/og-image.jpg`);
+        }
+        function navigateHome() {
+            window.history.pushState({}, '', '/');
+            showPage('home', false);
+        }
+
+        function navigateSubmit() {
+            window.history.pushState({}, '', '/submit');
+            showPage('submit', false);
+        }
+
+        function navigateBack() {
+            window.history.pushState({}, '', '/');
+            showPage('home', false);
+        }
     </script>
 </body>
 </html>
